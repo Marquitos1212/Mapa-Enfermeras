@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa de Enfermeras en Colegios de Galicia</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
+  <style>
+    body { margin: 0; display: flex; }
+    #sidebar {
+      width: 300px;
+      max-height: 100vh;
+      overflow-y: auto;
+      background: #f8f9fa;
+      padding: 10px;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+      font-family: sans-serif;
+      font-size: 14px;
+    }
+    #map { flex: 1; height: 100vh; }
+    .legend i {
+      width: 12px;
+      height: 12px;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    .leaflet-popup-content { font-size: 14px; }
+    .search-box {
+      margin-bottom: 10px;
+    }
+    .school-item {
+      padding: 5px;
+      cursor: pointer;
+    }
+    .school-item:hover {
+      background-color: #e0e0e0;
+    }
+
+</style>
+</head>
+<body>
+  <div id="sidebar">
+    <div class="search-box">
+      <strong>Buscar colegio:</strong><br>
+      <input type="text" id="busqueda" placeholder="Nombre o ciudad" style="width: 100%; padding: 5px;">
+    </div>
+    <div>
+      <strong>Filtrar por tipo:</strong><br>
+      <label><input type="checkbox" checked value="Público"> Público</label><br>
+      <label><input type="checkbox" checked value="Concertado"> Concertado</label><br>
+      <label><input type="checkbox" checked value="Privado"> Privado</label>
+    </div>
+    <hr>
+    <div id="contador"></div>
+    <hr>
+    <div>
+      <label for="map-style"><strong>Estilo del mapa:</strong></label>
+      <select id="map-style" style="width: 100%; padding: 5px; margin-top: 5px;">
+        <option value="osm">OpenStreetMap</option>
+        <option value="satellite">Esri Satélite</option>
+      </select>
+    </div>
+
+<button onclick="resetearMapa()" style="margin-top:10px; width:100%;">Restablecer mapa</button>
+    <hr>
+    <div id="lista"></div>
+  </div>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js">
+
+    // 🎨 Cambio de estilo del mapa
+    const tileLayers = {
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
+    };
+
+    document.getElementById('map-style').addEventListener('change', (e) => {
+      map.eachLayer(layer => map.removeLayer(layer));  // Quita todo
+      tileLayers[e.target.value].addTo(map);           // Añade el nuevo
+      map.addLayer(markers);                           // Reañade los marcadores
+    });
+
+</script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js">
+
+    // 🎨 Cambio de estilo del mapa
+    const tileLayers = {
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
+    };
+
+    document.getElementById('map-style').addEventListener('change', (e) => {
+      map.eachLayer(layer => map.removeLayer(layer));  // Quita todo
+      tileLayers[e.target.value].addTo(map);           // Añade el nuevo
+      map.addLayer(markers);                           // Reañade los marcadores
+    });
+
+</script>
+  <script>
+    var map = L.map('map').setView([42.878, -8.544], 8);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    const centros = [
+  {nombre: "CEE Terra de Ferrol", ciudad: "Ferrol", enfermeras: "2", tipo: "Público", direccion: "Irmandade de Doadores de Sangue de Ferrol, s/n, 15405 Ferrol, A Coruña", coords: [43.51098893494072, -8.213860089614073]},
+  {nombre: "CEE A Barcia", ciudad: "Santiago de Compostela", enfermeras: "2", tipo: "Público", direccion: "Lugar A Barcia, 79. Loc Laraño, 15896 Santiago de Compostela, La Coruña, A Coruña", coords: [42.87632185707329, -8.587816349134577]},
+  {nombre: "IES O Mosteirón", ciudad: "Sada", enfermeras: "¿1?", tipo: "Público", direccion: "Esperela, s/n", coords: [43.349381547734566, -8.29191255588105]},
+  {nombre: "CEE O Pedroso", ciudad: "Santiago de Compostela", enfermeras: "1", tipo: "Público", direccion: "Rúa de San Paio do Monte, 6, 15705 Santiago de Compostela, A Coruña", coords: [42.884776049837036, -8.556771460836028]},
+  {nombre: "CEE Manuel López Navalón", ciudad: "Santiago de Compostela", enfermeras: "1", tipo: "Público", direccion: "Lugar Casas do Rego, 20, 15705 Santiago de Compostela", coords: [42.88514776783916, -8.556764806794042]},
+  {nombre: "CEE Infanta Elena", ciudad: "Monforte de Lemos", enfermeras: "1", tipo: "Público", direccion: "Camiño Real de Seoane, 61, 27400 Monforte de Lemos, Lugo", coords: [42.53266482500016, -7.531893593329003]},
+  {nombre: "CEE Santa María", ciudad: "Lugo", enfermeras: "1", tipo: "Público", direccion: "Rúa da Luz, 1, 27002 Lugo", coords: [42.995732741359525, -7.546449686614624]},
+  {nombre: "CEE Miño", ciudad: "Ourense", enfermeras: "1", tipo: "Público", direccion: "Rúa Juan Fernandez de Gres, 13, 32960 Ourense", coords: [42.36480822688102, -7.846050749152741]},
+  {nombre: "CEE Panxón", ciudad: "Nigran", enfermeras: "1", tipo: "Público", direccion: "Camiño dos Lagos, 5-1, 36340 Nigrán, Pontevedra", coords: [42.14668708668587, -8.823018624001337]},
+  {nombre: "CEE Saladino Cortizo", ciudad: "Vigo", enfermeras: "1", tipo: "Público", direccion: "Rúa do Carballal, 60, Cabral, 36318 Vigo, Pontevedra", coords: [42.23875536990218, -8.638599950968834]},
+  {nombre: "CEE Vilagarcía de Arousa", ciudad: "Vilagarcía de Arousa", enfermeras: "1", tipo: "Público", direccion: "Lugar Jardín Doutor Fleming, 0 S N, 36600 Vilagarcía de Arousa, Pontevedra", coords: [42.595566147039655, -8.761015235637723]},
+  {nombre: "CEE María Mariño", ciudad: "A Coruña", enfermeras: "1", tipo: "Público", direccion: "Xubias de Arriba, 16, 15006 A Coruña", coords: [43.34394750878515, -8.384015251004149]},
+  {nombre: "Colegio Calasanz PP. Escolapios", ciudad: "A Coruña", enfermeras: "1", tipo: "Concertado", direccion: "PP. Escolapios, Estrada dos Fortes, 10, 15011 A Coruña", coords: [43.37250118209926, -8.430026350966816]},
+  {nombre: "Colegio Internacional Eirís", ciudad: "A Coruña", enfermeras: "1", tipo: "Privado", direccion: "Rúa Castaño de Eirís, 1, 15009 A Coruña", coords: [43.3408514261878, -8.394791044286741]},
+  {nombre: "Colegio Obradoiro International School", ciudad: "A Coruña", enfermeras: "1", tipo: "Privado", direccion: "Rúa Obradoiro, 49, 15190 A Coruña", coords: [43.31930031986821, -8.425926503105899]},
+  {nombre: "Colegio Manuel Peleteiro", ciudad: "Santiago de Compostela", enfermeras: "1", tipo: "Privado", direccion: "Lugar do Monte Redondo, s/n, 15702 Santiago de Compostela, A Coruña", coords: [42.85165958771674, -8.535695635621066]},
+  {nombre: "Colegio Plurilingüe Santa María del Mar", ciudad: "A Coruña", enfermeras: "3", tipo: "Concertado", direccion: "Av. Pasaxe, 69, 15006 A Coruña", coords: [43.335524937759025, -8.388862866313074]},
+  {nombre: "Colegio Liceo La Paz", ciudad: "A Coruña", enfermeras: "1", tipo: "Concertado", direccion: "Rúa Sebastián Martínez Risco, 12, 15009 A Coruña", coords: [43.34148585385031, -8.402384498221686]},
+  {nombre: "British International School Coruña", ciudad: "A Coruña", enfermeras: "1", tipo: "Privado", direccion: "Rua Roma, 1, 15008 A Coruña", coords: [43.32387489930685, -8.406614718242725]},
+  {nombre: "Colegio Internacional SEK-Atlántico", ciudad: "Pontevedra", enfermeras: "1", tipo: "Privado", direccion: "C/ Illa de Arousa, Urb. A Caeira, 4, 36005 Boa Vista, Pontevedra", coords: [42.44020365117865, -8.65676851273678] }
+];
+    const colores = {"Público": "blue", "Concertado": "green", "Privado": "red"};
+    const markers = L.markerClusterGroup();
+    let markerRefs = [];
+
+    function crearMarcador(c) {
+      const marker = L.circleMarker(c.coords, {
+        radius: 8,
+        fillColor: colores[c.tipo] || "gray",
+        color: "#000",
+        weight: 1,
+        opacity: 1,
+        fillOpacity: 0.8
+      }).bindPopup(`<strong>${c.nombre}</strong><br>${c.direccion}<br>${c.ciudad}<br>Enfermeras: ${c.enfermeras}<br>Tipo: ${c.tipo}`);
+
+      marker.bindTooltip(c.nombre);
+      marker.tipo = c.tipo;
+      marker.nombre = c.nombre;
+      marker.ciudad = c.ciudad;
+      markerRefs.push({ marker, ...c });
+      return marker;
+    }
+
+    function actualizarMapa() {
+  markerRefs.sort((a, b) => a.nombre.localeCompare(b.nombre));
+      const seleccionados = Array.from(document.querySelectorAll('#sidebar input[type=checkbox]:checked')).map(cb => cb.value);
+      const textoBusqueda = document.getElementById('busqueda').value.toLowerCase();
+      markers.clearLayers();
+      document.getElementById('lista').innerHTML = '';
+
+      let contador = {Público: 0, Concertado: 0, Privado: 0};
+      let totalEnfermeras = 0;
+      markerRefs.forEach(obj => {
+        const coincideTipo = seleccionados.includes(obj.tipo);
+        const coincideTexto = obj.nombre.toLowerCase().includes(textoBusqueda) || obj.ciudad.toLowerCase().includes(textoBusqueda);
+        if (coincideTipo && coincideTexto) {
+          totalEnfermeras += parseInt(obj.enfermeras) || 0;
+          markers.addLayer(obj.marker);
+          contador[obj.tipo]++;
+
+          const item = document.createElement('div');
+          item.className = 'school-item';
+          item.textContent = `${obj.nombre} (${obj.ciudad})`;
+          item.onclick = () => {
+            map.setView(obj.marker.getLatLng(), 14);
+            obj.marker.openPopup();
+          };
+          document.getElementById('lista').appendChild(item);
+        }
+      });
+
+      document.getElementById('contador').innerHTML = `
+        <strong>Colegios visibles:</strong><br>
+        Total: ${contador.Público + contador.Concertado + contador.Privado}<br>
+        Público: ${contador.Público}<br>
+        Concertado: ${contador.Concertado}<br>
+        Privado: ${contador.Privado}<br>
+        Enfermeras totales: ${totalEnfermeras}`;
+    }
+
+    centros.forEach(c => {
+      const marker = crearMarcador(c);
+      markers.addLayer(marker);
+    });
+    map.addLayer(markers);
+
+// ✅ ahora sí, markerRefs está listo
+actualizarMapa();
+
+
+
+    setTimeout(() => {
+      map.invalidateSize();
+    }, 200);
+
+    document.querySelectorAll('#sidebar input[type=checkbox]').forEach(cb => cb.addEventListener('change', actualizarMapa));
+    document.getElementById('busqueda').addEventListener('input', actualizarMapa);
+
+
+function resetearMapa() {
+  document.getElementById('busqueda').value = "";
+  document.querySelectorAll('#sidebar input[type=checkbox]').forEach(cb => cb.checked = true);
+  map.setView([42.878, -8.544], 8); // Vista inicial
+  actualizarMapa();
+}
+
+
+// Leyenda
+    var legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+      var div = L.DomUtil.create('div', 'info legend');
+      ["Público", "Concertado", "Privado"].forEach((tipo, i) => {
+        div.innerHTML += `<i style="background:${colores[tipo]}"></i> ${tipo}<br>`;
+      });
+      return div;
+    };
+    legend.addTo(map);
+    // 🎨 Cambio de estilo del mapa
+    const tileLayers = {
+      osm: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }),
+      satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri' })
+    };
+
+    document.getElementById('map-style').addEventListener('change', (e) => {
+      map.eachLayer(layer => map.removeLayer(layer));  // Quita todo
+      tileLayers[e.target.value].addTo(map);           // Añade el nuevo
+      map.addLayer(markers);                           // Reañade los marcadores
+    });
+
+</script>
+</body>
+</html>
